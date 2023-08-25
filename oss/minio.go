@@ -8,35 +8,30 @@ import (
 	"log"
 )
 
-// NewMinioClient 实例化链接
-func NewMinioClient(endpoint, accessKey, secretKey string, useSSL bool) *minio.Client {
-	client, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: useSSL,
-	})
-	if err != nil {
-		log.Fatal(err)
+const (
+	endpoint        string = "106.14.141.61:30090"
+	accessKeyID     string = "SxB3zoNzMouanGpCdMhe"
+	secretAccessKey string = "3WZEulCl4A0UXJ2rekFNdtjfuG449Wr72jiCKOZB"
+	useSSL          bool   = false
+)
 
-	}
-	return client
-}
+var (
+	Client *minio.Client
+	err    error
+)
 
-// CreateBucket 创建桶
-func CreateBucket(ctx context.Context, bucket, region string, client *minio.Client, locking bool) error {
-	err := client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{region, locking})
+func init() {
+	Client, err = minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL})
 	if err != nil {
-		return err
+		log.Fatalln("minio连接错误: ", err)
 	}
-	exists, _ := client.BucketExists(ctx, bucket)
-	if exists {
-		return errors.New("bucket already exists")
-	}
-	return nil
 }
 
 // GetBucketList 查看桶的列表
-func GetBucketList(client *minio.Client) ([]minio.BucketInfo, error) {
-	buckets, err := client.ListBuckets(context.Background())
+func GetBucketList() ([]minio.BucketInfo, error) {
+	buckets, err := Client.ListBuckets(context.Background())
 	if err != nil {
 		return nil, errors.New("not list buckets")
 	}
@@ -44,8 +39,8 @@ func GetBucketList(client *minio.Client) ([]minio.BucketInfo, error) {
 }
 
 // UploadFile 文件上传
-func UploadFile(ctx context.Context, bucket, object, filepath string, client *minio.Client) error {
-	_, err := client.FPutObject(ctx, bucket, object, filepath, minio.PutObjectOptions{})
+func UploadFile(ctx context.Context, bucket, object, filepath string) error {
+	_, err := Client.FPutObject(ctx, bucket, object, filepath, minio.PutObjectOptions{})
 	if err != nil {
 		return err
 	}
@@ -53,8 +48,8 @@ func UploadFile(ctx context.Context, bucket, object, filepath string, client *mi
 }
 
 // Download 文件下载
-func Download(ctx context.Context, bucket, object, filepath string, client *minio.Client) error {
-	err := client.FGetObject(ctx, bucket, object, filepath, minio.GetObjectOptions{})
+func Download(ctx context.Context, bucket, object, filepath string) error {
+	err := Client.FGetObject(ctx, bucket, object, filepath, minio.GetObjectOptions{})
 	if err != nil {
 		return err
 	}
